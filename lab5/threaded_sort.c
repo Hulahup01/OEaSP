@@ -23,7 +23,35 @@ void bubbleSort(int* array, int start_index, int end_index) {
     }
 }
 
-void* threadSort(void* arg){
+void merge(int *array, int *temp, int left, int mid, int right) {
+    int i = left, j = mid + 1, k = left;
+    while (i <= mid && j <= right) {
+        if (array[i] <= array[j])
+            temp[k++] = array[i++];
+        else
+            temp[k++] = array[j++];
+    }
+    while (i <= mid)
+        temp[k++] = array[i++];
+    
+    while (j <= right)
+        temp[k++] = array[j++];
+    
+    for (i = left; i <= right; ++i)
+        array[i] = temp[i];
+    
+}
+
+void mergeSort(int *array, int *temp, int left, int right) {
+    if (left < right) {
+        int mid = (left + right) / 2;
+        mergeSort(array, temp, left, mid);
+        mergeSort(array, temp, mid + 1, right);
+        merge(array, temp, left, mid, right);
+    }
+}
+
+void* threadSort(void* arg) {
     pthrData *data = (pthrData*) arg;
     bubbleSort(data->array, data->start_index, data->end_index);
     return NULL;
@@ -42,9 +70,14 @@ void parallel_sort(int array[], int size, int num_threads) {
         pthread_create(&threads[i], NULL, threadSort, &thread_data[i]);
     }
 
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < num_threads; i++)
         pthread_join(threads[i], NULL);
-    }
+
+    int *temp = (int *)malloc(size * sizeof(int));
+ 
+    mergeSort(array, temp, 0, size - 1);
+
+    free(temp);
 }
 
 double getElapsedTime(struct timeval start, struct timeval end) {
@@ -72,17 +105,19 @@ int main() {
     for (int i = 0; i < size; i++)
         array[i] = rand() % 100;
 
-    // printf("Not sorted array: ");
-    // for (int i = 0; i < size; i++)
-    //     printf("%d ", array[i]);
+    printf("Not sorted array: ");
+    for (int i = 0; i < size; i++)
+        printf("%d ", array[i]);
+    printf("\n");
 
     gettimeofday(&start_time, NULL);
     parallel_sort(array, size, num_threads);
     gettimeofday(&end_time, NULL);
 
-    // printf("Sorted array: ");
-    // for (int i = 0; i < size; i++)
-    //     printf("%d ", array[i]);
+    printf("Sorted array: ");
+    for (int i = 0; i < size; i++)
+        printf("%d ", array[i]);
+    printf("\n");
 
     double elapsed_time = getElapsedTime(start_time, end_time);
 
